@@ -46,9 +46,10 @@
   };
 
   boot.initrd.availableKernelModules = [
-    "ahci" "virtio_pci" "virtio_blk" "sd_mod"
-    "dm_mod" "dm_thin_pool"
+    "ahci" "virtio_pci" "virtio_scsi" "virtio_blk" "sd_mod"
   ];
+  # dm_mod must load early so device mapper is ready before lvm2 scans the VG.
+  boot.initrd.kernelModules = [ "dm_mod" ];
 
   hardware.enableRedistributableFirmware = true;
 }

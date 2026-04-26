@@ -30,6 +30,7 @@
         ./hosts/test-vm
         ./modules/caddy.nix
         ./modules/tailscale.nix
+        ./modules/knot.nix
       ];
     };
 

@@ -1,0 +1,53 @@
+name: Update test-vm
+
+on:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: update-test-vm
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: nixos-rebuild switch → test-vm
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v13
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v7
+
+      - name: Build system closure
+        run: |
+          nix build .#nixosConfigurations.test-vm.config.system.build.toplevel \
+            --show-trace \
+            -o result
+
+      - name: Deploy
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOST: 128.254.224.230
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.HOST_SSH_FINGERPRINT }}" >> ~/.ssh/known_hosts
+
+          nix copy \
+            --to "ssh://caramel@${HOST}?ssh-key=$HOME/.ssh/deploy_key" \
+            ./result
+
+          ssh -i ~/.ssh/deploy_key caramel@${HOST} \
+            "sudo nixos-rebuild switch \
+               --flake 'github:${{ github.repository }}/${{ github.sha }}#test-vm'"
+
+      - name: Verify
+        env:
+          HOST: 128.254.224.230
+        run: |
+          ssh -i ~/.ssh/deploy_key caramel@${HOST} \
+            "systemctl is-active caddy tailscaled" \
+          && echo "Core services active."

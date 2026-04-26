@@ -32,6 +32,9 @@
     extraGroups = [ "wheel" ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL3Lep+c7+DVsiDROabc/BMY/cFbvuQ9kyGl/S8P2z5P caramel@caramel.dog"
+      # CI deploy key — matches TEST_DEPLOY_SSH_KEY GitHub secret (public half)
+      # Replace with output of: ssh-keygen -t ed25519 -C "github-ci" -f /tmp/test_vm_deploy && cat /tmp/test_vm_deploy.pub
+      # "ssh-ed25519 AAAA... github-ci"
     ];
   };
 

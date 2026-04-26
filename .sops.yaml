@@ -5,7 +5,7 @@ creation_rules:
   - path_regex: secrets/.*\.yaml$
     key_groups:
       - age:
-          # test-vm host key (pre-generated; planted via nixos-anywhere --extra-files)
-          - age1hs909rjrzdlz2h025k46ll7fvwmneytlc9x8mds00m3rflcpwsus2uck2t
+          # sops-nix age key (planted at /var/lib/sops-nix/age.key via --extra-files)
+          - age1p4mz66yvk24afkxvmvj8d43s8qxhg43x88sep3z64yatd5jvsplsp353lv
           # Operator key
           - age1fkklnp8qahpxals6hx7mk44zatxwdwpflpajnxehuvl5ru5l7stq8f405e

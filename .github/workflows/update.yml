@@ -14,18 +14,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: DeterminateSystems/nix-installer-action@v13
-
-      - uses: DeterminateSystems/magic-nix-cache-action@v7
-
-      - name: Build system closure
-        run: |
-          nix build .#nixosConfigurations.test-vm.config.system.build.toplevel \
-            --show-trace \
-            -o result
-
       - name: Deploy
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -35,10 +23,6 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           echo "${{ secrets.HOST_SSH_FINGERPRINT }}" >> ~/.ssh/known_hosts
-
-          nix copy \
-            --to "ssh://caramel@${HOST}?ssh-key=$HOME/.ssh/deploy_key" \
-            ./result
 
           ssh -i ~/.ssh/deploy_key caramel@${HOST} \
             "sudo nixos-rebuild switch \

@@ -11,7 +11,7 @@
 
     virtualHosts.":80" = {
       extraConfig = ''
-        respond "it worked this time too" 200
+        respond "it worked this time w/ dns?" 200
       '';
     };
   };

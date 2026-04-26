@@ -13,5 +13,7 @@
         };
     };
 
-    allowedTCPPorts = [ 53 ];
+    networking.firewall = {
+        allowedTCPPorts = [ 53 ];
+    };
 }

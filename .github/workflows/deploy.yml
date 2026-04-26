@@ -21,14 +21,12 @@ jobs:
             --show-trace \
             -o result
 
-      - name: Reconstruct host SSH keypair
+      - name: Reconstruct sops-nix age key
         run: |
-          mkdir -p secrets/extra-files/etc/ssh
-          echo "${{ secrets.HOST_SSH_PRIVATE_KEY }}" | base64 -d \
-            > secrets/extra-files/etc/ssh/ssh_host_ed25519_key
-          printf '%s' "${{ secrets.HOST_SSH_PUBLIC_KEY }}" \
-            > secrets/extra-files/etc/ssh/ssh_host_ed25519_key.pub
-          chmod 600 secrets/extra-files/etc/ssh/ssh_host_ed25519_key
+          mkdir -p secrets/extra-files/var/lib/sops-nix
+          printf '%s\n' "${{ secrets.SOPS_AGE_KEY }}" \
+            > secrets/extra-files/var/lib/sops-nix/age.key
+          chmod 600 secrets/extra-files/var/lib/sops-nix/age.key
 
       - name: Deploy via nixos-anywhere
         env:

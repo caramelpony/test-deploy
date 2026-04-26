@@ -1,24 +1,22 @@
 #!/usr/bin/env bash
 # SOPS bootstrap for test-vm.
-# Generates a pre-shared host SSH keypair, wires up .sops.yaml, and encrypts
-# secrets.yaml — so nixos-anywhere can plant the key and sops-nix can decrypt
-# on first boot without the chicken-and-egg problem.
+# Generates an age keypair for sops-nix, wires up .sops.yaml, and encrypts
+# secrets.yaml. The age private key is stored as GitHub secret SOPS_AGE_KEY
+# and planted at /var/lib/sops-nix/age.key via nixos-anywhere --extra-files.
 #
 # Prerequisites (macOS without Nix):
 #   brew install sops age
-#   go install github.com/Mic92/ssh-to-age/cmd/ssh-to-age@latest
 
 set -euo pipefail
 
 # ── Preflight: required tools ────────────────────────────────────────────────
 MISSING=()
-for cmd in sops age-keygen ssh-keygen ssh-to-age; do
+for cmd in sops age-keygen; do
   command -v "$cmd" &>/dev/null || MISSING+=("$cmd")
 done
 if (( ${#MISSING[@]} > 0 )); then
   echo "ERROR: Missing required tools: ${MISSING[*]}"
   echo "  macOS (no Nix): brew install sops age"
-  echo "                  go install github.com/Mic92/ssh-to-age/cmd/ssh-to-age@latest"
   echo "  With Nix:       nix develop .#   (from repo root)"
   exit 1
 fi
@@ -26,25 +24,24 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DIR="$(dirname "$SCRIPT_DIR")"
 SECRETS_DIR="$TEST_DIR/secrets"
-KEY_DIR="$SECRETS_DIR/extra-files/etc/ssh"
+AGE_KEY_FILE="$SECRETS_DIR/extra-files/var/lib/sops-nix/age.key"
 SOPS_YAML="$TEST_DIR/.sops.yaml"
 
 echo "=== SOPS bootstrap for test-vm ==="
 echo ""
 
-# ── Step 1: Generate host SSH keypair ────────────────────────────────────────
-if [[ -f "$KEY_DIR/ssh_host_ed25519_key" ]]; then
-  echo "→ Host keypair already exists, skipping generation."
+# ── Step 1: Generate sops-nix age keypair ───────────────────────────────────
+if [[ -f "$AGE_KEY_FILE" ]]; then
+  echo "→ Age key already exists, skipping generation."
 else
-  echo "→ Generating host SSH keypair..."
-  mkdir -p "$KEY_DIR"
-  ssh-keygen -t ed25519 -f "$KEY_DIR/ssh_host_ed25519_key" -N "" -C "test-vm host key"
-  chmod 600 "$KEY_DIR/ssh_host_ed25519_key"
-  chmod 644 "$KEY_DIR/ssh_host_ed25519_key.pub"
+  echo "→ Generating age keypair for sops-nix..."
+  mkdir -p "$(dirname "$AGE_KEY_FILE")"
+  age-keygen -o "$AGE_KEY_FILE" 2>/dev/null
+  chmod 600 "$AGE_KEY_FILE"
 fi
 
-HOST_AGE_KEY=$(ssh-to-age -i "$KEY_DIR/ssh_host_ed25519_key.pub")
-echo "→ Host age key: $HOST_AGE_KEY"
+AGE_PUB=$(age-keygen -y "$AGE_KEY_FILE")
+echo "→ sops-nix age public key: $AGE_PUB"
 
 # ── Step 2: Get operator age public key ─────────────────────────────────────
 DEFAULT_AGE_FILE="$HOME/.config/sops/age/keys.txt"
@@ -55,7 +52,6 @@ else
   echo ""
   echo "No age keyfile found at $DEFAULT_AGE_FILE."
   echo "Generate one with: age-keygen -o ~/.config/sops/age/keys.txt"
-  echo "Or paste an existing public key below."
   echo ""
   read -rp "Operator age PUBLIC key (age1...): " OPERATOR_AGE_KEY
 fi
@@ -69,8 +65,8 @@ creation_rules:
   - path_regex: secrets/.*\\.yaml\$
     key_groups:
       - age:
-          # test-vm host key (pre-generated; planted via nixos-anywhere --extra-files)
-          - ${HOST_AGE_KEY}
+          # sops-nix age key (planted at /var/lib/sops-nix/age.key via --extra-files)
+          - ${AGE_PUB}
           # Operator key
           - ${OPERATOR_AGE_KEY}
 EOF
@@ -87,7 +83,6 @@ else
     echo ""
   fi
 
-  # Write plaintext then encrypt in-place from the test/ dir so .sops.yaml is found
   echo "tailscale-auth-key: ${TAILSCALE_KEY}" > "$SECRETS_DIR/secrets.yaml"
   (cd "$TEST_DIR" && sops -e -i secrets/secrets.yaml)
   echo "→ Encrypted secrets written to $SECRETS_DIR/secrets.yaml"
@@ -96,7 +91,11 @@ fi
 echo ""
 echo "=== Bootstrap complete ==="
 echo ""
-echo "Host key fingerprint (will appear on first SSH connect):"
-ssh-keygen -lf "$KEY_DIR/ssh_host_ed25519_key.pub"
+echo "GitHub secret to set:"
+echo "  SOPS_AGE_KEY  →  contents of: $AGE_KEY_FILE"
+echo "  (a single line starting with AGE-SECRET-KEY-1...)"
 echo ""
-echo "Next: run  scripts/deploy.sh"
+echo "You can copy it with:"
+echo "  cat '$AGE_KEY_FILE' | pbcopy"
+echo ""
+echo "Next: run  scripts/deploy.sh   (or push and trigger the GitHub Actions workflow)"

@@ -11,14 +11,10 @@
   time.timeZone = "UTC";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  boot.loader = {
-    grub = {
-      enable = true;
-      efiSupport = true;
-      efiInstallAsRemovable = true;
-      device = "nodev";
-    };
-    efi.canTouchEfiVariables = false;
+  # SeaBIOS / BIOS boot — no EFI on this VM
+  boot.loader.grub = {
+    enable = true;
+    device = "/dev/sda";
   };
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
@@ -45,9 +41,10 @@
   security.sudo.wheelNeedsPassword = false;
 
   # ── SOPS secrets ─────────────────────────────────────────────────────────
+  # age.key is planted via nixos-anywhere --extra-files before nixos-install runs.
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
-    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+    age.keyFile = "/var/lib/sops-nix/age.key";
     secrets = {
       tailscale-auth-key = { owner = "root"; mode = "0400"; };
     };

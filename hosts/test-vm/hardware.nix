@@ -1,5 +1,6 @@
 { ... }:
-# Single /dev/sda — GPT, EFI boot, LVM for swap + root.
+# Single /dev/sda — GPT with BIOS boot partition, LVM for swap + root.
+# VM uses SeaBIOS (BIOS, not UEFI).
 {
   disko.devices = {
     disk.main = {
@@ -8,15 +9,10 @@
       content = {
         type = "gpt";
         partitions = {
-          ESP = {
-            size = "512M";
-            type = "EF00";
-            content = {
-              type = "filesystem";
-              format = "vfat";
-              mountpoint = "/boot";
-              mountOptions = [ "defaults" "umask=0077" ];
-            };
+          bios_boot = {
+            size = "1M";
+            type = "EF02";   # GRUB BIOS boot — not mounted, just required
+            priority = 1;
           };
           root_pv = {
             size = "100%";
@@ -50,7 +46,7 @@
   };
 
   boot.initrd.availableKernelModules = [
-    "ahci" "virtio_pci" "virtio_blk" "sd_mod" "xhci_pci"
+    "ahci" "virtio_pci" "virtio_blk" "sd_mod"
     "dm_mod" "dm_thin_pool"
   ];
 

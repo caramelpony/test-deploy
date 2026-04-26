@@ -1,0 +1,8 @@
+result
+result-*
+.direnv/
+.envrc
+.DS_Store
+
+# Pre-generated host SSH keypair — stored in GitHub secrets instead
+secrets/extra-files/

@@ -1,0 +1,54 @@
+name: Deploy test-vm
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: nixos-anywhere → test-vm
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v13
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v7
+
+      - name: Build system closure
+        run: |
+          nix build .#nixosConfigurations.test-vm.config.system.build.toplevel \
+            --show-trace \
+            -o result
+
+      - name: Reconstruct host SSH keypair
+        run: |
+          mkdir -p secrets/extra-files/etc/ssh
+          echo "${{ secrets.HOST_SSH_PRIVATE_KEY }}" | base64 -d \
+            > secrets/extra-files/etc/ssh/ssh_host_ed25519_key
+          printf '%s' "${{ secrets.HOST_SSH_PUBLIC_KEY }}" \
+            > secrets/extra-files/etc/ssh/ssh_host_ed25519_key.pub
+          chmod 600 secrets/extra-files/etc/ssh/ssh_host_ed25519_key
+
+      - name: Deploy via nixos-anywhere
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/deploy_key
+
+          nixos-anywhere \
+            --flake .#test-vm \
+            --extra-files secrets/extra-files \
+            --ssh-option "StrictHostKeyChecking=accept-new" \
+            "root@[2602:fbec:224:0:be24:11ff:fe0d:d151]"
+
+      - name: Verify Caddy
+        run: |
+          echo "Waiting 90s for reboot..."
+          sleep 90
+          curl -6 --fail --max-time 10 http://[2602:fbec:224:0:be24:11ff:fe0d:d151]/
+          echo "→ Caddy responded OK"

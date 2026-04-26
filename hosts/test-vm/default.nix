@@ -11,11 +11,8 @@
   time.timeZone = "UTC";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  # SeaBIOS / BIOS boot — no EFI on this VM
-  boot.loader.grub = {
-    enable = true;
-    device = "/dev/sda";
-  };
+  # SeaBIOS / BIOS boot — disko sets boot.loader.grub.devices from the EF02 partition
+  boot.loader.grub.enable = true;
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 

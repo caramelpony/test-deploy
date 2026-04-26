@@ -44,7 +44,7 @@ jobs:
             --flake .#test-vm \
             --extra-files secrets/extra-files \
             --ssh-option "StrictHostKeyChecking=accept-new" \
-            "root@[128.254.224.230]"
+            "root@128.254.224.230"
 
       - name: Verify Caddy
         run: |

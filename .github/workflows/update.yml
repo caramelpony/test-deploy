@@ -42,7 +42,8 @@ jobs:
 
           ssh -i ~/.ssh/deploy_key caramel@${HOST} \
             "sudo nixos-rebuild switch \
-               --flake 'github:${{ github.repository }}/${{ github.sha }}#test-vm'"
+               --flake 'github:${{ github.repository }}/${{ github.sha }}#test-vm' \
+               --no-write-lock-file"
 
       - name: Verify
         env:

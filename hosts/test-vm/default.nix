@@ -60,5 +60,8 @@
 
   environment.systemPackages = with pkgs; [ vim curl jq ];
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    trusted-users = [ "@wheel" ];
+  };
 }

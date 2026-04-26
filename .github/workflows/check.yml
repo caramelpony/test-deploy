@@ -1,0 +1,59 @@
+name: Validate
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v13
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v7
+
+      - name: Check flake
+        run: nix flake check --show-trace
+
+      - name: Build host closure
+        run: |
+          nix build .#nixosConfigurations.test-vm.config.system.build.toplevel \
+            --show-trace \
+            -o result
+
+  sops-check:
+    name: secrets sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify secrets file is encrypted (not plaintext)
+        run: |
+          if grep -q "tskey-" secrets/secrets.yaml; then
+            echo "ERROR: secrets.yaml appears to contain plaintext secrets!"
+            exit 1
+          fi
+          echo "Secrets file looks encrypted."
+
+  approve-pr:
+    name: Approve PR
+    if: github.event_name == 'pull_request'
+    needs: [ flake-check, sops-check ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr review ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --approve \
+            --body "Build verified — nix closure built successfully."

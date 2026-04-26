@@ -42,11 +42,11 @@ jobs:
             --flake .#test-vm \
             --extra-files secrets/extra-files \
             --ssh-option "StrictHostKeyChecking=accept-new" \
-            "root@128.254.224.230"
+            "root@${{ secrets.TEST_VM_HOST }}"
 
       - name: Verify Caddy
         run: |
           echo "Waiting 90s for reboot..."
           sleep 90
-          curl --fail --max-time 10 http://128.254.224.230/
+          curl --fail --max-time 10 http://${{ secrets.TEST_VM_HOST }}/
           echo "→ Caddy responded OK"

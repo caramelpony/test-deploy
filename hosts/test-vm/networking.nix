@@ -15,7 +15,7 @@
     interface = "ens18";
   };
 
-  networking.nameservers = [
-    "1.1.1.1"
-  ];
+  # kresd owns port 53; point the system resolver at it
+  networking.nameservers = [ "127.0.0.1" ];
+  services.resolved.enable = false;
 }

@@ -11,7 +11,7 @@
 
     virtualHosts.":80" = {
       extraConfig = ''
-        respond "it worked this time w/ dns?" 200
+        respond "if ci worked.. this will deploy correctly." 200
       '';
     };
   };

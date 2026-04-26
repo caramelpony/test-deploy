@@ -1,7 +1,6 @@
 { ... }:
-# IPv6-only static config.
-# If the interface name differs, check with `ip link` on the running rescue system
-# and replace "eth0" below — common alternatives: ens3, enp1s0, enp2s0.
+# ens18 — IPv6 (management/public)
+# ens19 — IPv4 128.254.224.230/24 (used for CI deploy reachability)
 {
   networking.useDHCP = false;
 
@@ -12,14 +11,25 @@
     ];
   };
 
-  # Confirm the gateway with your hosting provider; fe80::1 is a common default.
+  networking.interfaces.ens19 = {
+    useDHCP = false;
+    ipv4.addresses = [
+      { address = "128.254.224.230"; prefixLength = 24; }
+    ];
+  };
+
+  networking.defaultGateway = {
+    address = "128.254.224.1";
+    interface = "ens19";
+  };
+
   networking.defaultGateway6 = {
     address = "2602:fbec:224::254";
     interface = "ens18";
   };
 
   networking.nameservers = [
-    "2606:4700:4700::1111"   # Cloudflare IPv6
-    "2620:fe::fe"            # Quad9 IPv6
+    "9.9.9.9"
+    "2620:fe::fe"
   ];
 }

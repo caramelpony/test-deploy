@@ -20,7 +20,7 @@ if (( ${#MISSING[@]} > 0 )); then
   exit 1
 fi
 
-HOST="${HOST:-2602:fbec:224:0:be24:11ff:fe0d:d151}"
+HOST="${HOST:-128.254.224.230}"
 SSH_USER="${SSH_USER:-root}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +29,7 @@ FLAKE_REF="${FLAKE_REF:-${REPO_ROOT}#test-vm}"
 EXTRA_FILES="${REPO_ROOT}/secrets/extra-files"
 
 echo "=== test-vm: NixOS initial deployment ==="
-echo "Target:      ${SSH_USER}@[${HOST}]"
+echo "Target:      ${SSH_USER}@${HOST}"
 echo "Flake:       ${FLAKE_REF}"
 echo ""
 
@@ -44,7 +44,7 @@ if [[ ! -f "${TEST_DIR}/secrets/secrets.yaml" ]]; then
   exit 1
 fi
 
-echo "WARNING: This will ERASE all data on /dev/sda at [${HOST}]."
+echo "WARNING: This will ERASE all data on /dev/sda at ${HOST}."
 read -rp "Type 'yes' to continue: " CONFIRM
 [[ "$CONFIRM" == "yes" ]] || { echo "Aborted."; exit 1; }
 
@@ -62,7 +62,7 @@ nixos-anywhere \
   --flake "${FLAKE_REF}" \
   --extra-files "${EXTRA_FILES}" \
   --ssh-option "StrictHostKeyChecking=accept-new" \
-  "${SSH_USER}@[${HOST}]"
+  "${SSH_USER}@${HOST}"
 
 echo ""
 echo "=== Deployment complete ==="
@@ -70,14 +70,14 @@ echo ""
 echo "Wait ~1 min for reboot, then:"
 echo ""
 echo "  SSH in:"
-echo "    ssh caramel@[${HOST}]"
+echo "    ssh caramel@${HOST}"
 echo ""
 echo "  Verify Caddy:"
-echo "    curl -6 http://[${HOST}]/"
+echo "    curl http://${HOST}/"
 echo "    # Expected: 'it worked'"
 echo ""
 echo "  Verify Tailscale:"
-echo "    ssh caramel@[${HOST}] 'tailscale status'"
+echo "    ssh caramel@${HOST} 'tailscale status'"
 echo ""
 echo "  Verify sops-nix decrypted the secret:"
-echo "    ssh caramel@[${HOST}] 'sudo ls -la /run/secrets/'"
+echo "    ssh caramel@${HOST} 'sudo ls -la /run/secrets/'"

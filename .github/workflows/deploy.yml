@@ -40,7 +40,7 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/deploy_key
 
-          nixos-anywhere \
+          nix run github:nix-community/nixos-anywhere -- \
             --flake .#test-vm \
             --extra-files secrets/extra-files \
             --ssh-option "StrictHostKeyChecking=accept-new" \
